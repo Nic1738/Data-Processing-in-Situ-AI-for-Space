@@ -45,15 +45,11 @@ No RL — evaluated, rejected (reintroduces the black-box trust problem, adds ov
 
 ## Week 4
 
+- Built the xBD data pipeline (`xbd_pipeline.py`): discovers image pairs, rasterizes building polygons into per-pixel damage masks, resizes pre/post/mask in sync, applies synchronized augmentation (flip/rotate), and splits train/val by disaster event so no rare event lands entirely in one split.
+- Normalization uses ImageNet mean/std, pulled directly from `ResNet50_Weights.DEFAULT` rather than hardcoded — required for the pretrained backbone's frozen conv/BatchNorm layers to receive inputs in the distribution they were calibrated on; skipping this would degrade the pretrained features the fine-tuning step depends on.
+- Added inverse-frequency class weighting (`compute_class_weights`) to address the ~8-10x no-damage skew documented in the xBD paper.
+- Refactored pipeline into small, single-purpose functions (no wrapper classes) for auditability — each step (mask building, resizing, augmenting, normalizing) is independently readable and testable.
 
 ---
 
-<!--
-Template for new entries:
 
-## Week N
-
-- What you did
-- What you decided, and why
-- What's next
--->
