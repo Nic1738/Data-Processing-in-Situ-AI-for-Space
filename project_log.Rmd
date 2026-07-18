@@ -50,6 +50,32 @@ No RL — evaluated, rejected (reintroduces the black-box trust problem, adds ov
 - Added inverse-frequency class weighting (`compute_class_weights`) to address the ~8-10x no-damage skew documented in the xBD paper.
 - Refactored pipeline into small, single-purpose functions (no wrapper classes) for auditability — each step (mask building, resizing, augmenting, normalizing) is independently readable and testable.
 
+## Week 5
+
+**Scope decision:** narrowed conflict fine-tuning data to Gaza only. Ukraine (Mariupol) dropped for now — Gaza has a live, directly queryable UNOSAT ArcGIS REST endpoint; Mariupol only had a static HDX page requiring manual download. Revisit Ukraine once Gaza pipeline is proven.
+
+**Extraction pipeline (`extract_patches.py`), key engineering decisions:**
+
+- **Query order flipped: damage points first, then OSM.** Originally queried OSM infrastructure (hospitals/schools/clinics) across the whole region, then joined to damage points — slow (Overpass 35x-area warning) and wasteful, since most footprints never had a nearby damage point anyway. Now loads damage points first, builds a tight envelope around just those, and only queries OSM within that envelope. Faster, and avoids pulling/storing infrastructure that was never going to be used.
+- **Pagination fix.** Gaza's ArcGIS server caps responses at 2000 records (`MaxRecordCount`). Initial runs silently returned only the first 2000 of Gaza's real ~170k+ documented damage points, clustered in one area — near-empty manifest as a result. Fixed by looping with `resultOffset` until a page returns short.
+- **Single-scene-then-crop, not per-building downloads.** Originally called Earth Engine once per building per date (2×N calls). Rebuilt to download one pre-event and one post-event scene covering the whole envelope, then crop every building's patch locally with `rasterio` windowed reads — 2 downloads total instead of 2×N. Faster and more reproducible (every patch in a region comes from the same source scene).
+- **Median composite instead of single "least cloudy" image.** A single-image pick left a nodata gap (black band, likely a source-tile edge) across part of the pre-event scene. Switched to a cloud-filtered (`<30%`) median composite across the whole date window — fills single-tile gaps with data from other overpasses. Paired with widening the pre-event window (4 months, low change-risk period) and a smaller post-event window (±2 weeks around UNOSAT's confirmed 11 Oct 2025 capture, to avoid drifting into damage that postdates the actual assessment).
+- **Nodata filtering at crop time.** Any cropped patch >10% zero-value pixels is dropped, not saved — avoids storing blank/noise patches as ground truth.
+
+**Risks identified, not yet resolved:**
+
+- **Leakage risk (padding overlap).** `PATCH_PADDING_METERS=20` means two buildings within ~40m can produce overlapping patches — if split across train/test, that's leakage. Needs a spatial-cluster-aware split (nearby buildings grouped into the same split), not a random one.
+- **Mislabeling risk (join distance).** `JOIN_DISTANCE_METERS=50` risks matching a damage point to the wrong nearby building in dense areas. Not yet spot-checked against real building outlines.
+- Manually verified one patch pair (`gaza_strip_0001`): bounds/transform pixel-identical between pre/post (correct alignment), real Sentinel-2 reflectance values, visible but proportionally subtle change — worth cross-checking against its actual damage label for a sanity check.
+
+**Next phase — training:**
+
+- [ ] Resolve the two risks above before finalizing the fine-tuning split: implement spatial-cluster train/val/test split; spot-check a sample of joined rows for correct point-to-building matching.
+- [ ] Upload verified `patches_v3` (images + manifest) to Kaggle as its own private dataset, kept separate from xBD per the established reproducibility pattern.
+- [ ] Extend the training notebook: load xBD-pretrained ResNet checkpoint, fine-tune head on the Gaza set, using the same class-weighting approach as xBD.
+- [ ] Evaluate: in-domain (Gaza held-out split) first, then compare against the xBD hold-out baseline to quantify the domain-transfer gap — same two-stage evaluation logic established for xBD.
+
+
 ---
 
 
