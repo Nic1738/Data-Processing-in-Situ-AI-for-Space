@@ -75,7 +75,27 @@ No RL — evaluated, rejected (reintroduces the black-box trust problem, adds ov
 - [ ] Extend the training notebook: load xBD-pretrained ResNet checkpoint, fine-tune head on the Gaza set, using the same class-weighting approach as xBD.
 - [ ] Evaluate: in-domain (Gaza held-out split) first, then compare against the xBD hold-out baseline to quantify the domain-transfer gap — same two-stage evaluation logic established for xBD.
 
+Week 6: Architecture review & training and validation 
 
+For this weeks work, we reviewed the architecture and propsoed a siamese/ dual resnet-50 to mirror the nature of the classification task (pre/post) where two resnet-50 with identical weights are trained similtaneously with pre & post images (PNGs) holding same IDS. 
+
+
+**Key Diagnostic Findings & BottlenecksFailure on Severe Minority Tiers:**
+
+- Class 2 (Major Damage) suffered from acute precision collapse (0.28), indicating that over 70% of Major Damage predictions were false positives drawn from neighboring classes.Semantic Ambiguity Between Classes 2 and 3: The visual disparity between partial roof/wall failure (Major) and complete structural collapse (Destroyed) proved too subtle for the network to resolve consistently given the limited sample size ($N = 71$ for Class 2).Justification for Data-Centric Refactoring: These baseline results confirmed that isolating Major Damage created an artificial bottleneck, directly informing the decision to consolidate Classes 2 and 3 into a unified severe damage tier for the subsequent iteration.
+
+Week 6: 
+
+
+To be added later on ....
+
+
+Week 8: Combined Classes to mitigate class imbalance 
+
+To resolve the severe under-representation of high-severity structural degradation—where Major (173 samples) and Destroyed (263 samples) individually formed extreme minority classes—we implemented a multi-tiered class balancing strategy centered on data consolidation and adaptive optimization. By re-mapping the label space to merge Major and Destroyed into a unified Major/Destroyed target, we increased the effective minority sample count to 436 instances while removing ambiguous decision boundaries between closely related severe damage states. To ensure the network effectively learned from these consolidated samples without getting overwhelmed by dominant background classes, we deployed two complementary algorithmic techniques:
+- Square-Root Inverse Frequency Sampling: Applied a WeightedRandomSampler using power-scaled sample weights ($w_i = (1 / N_i)^{0.5}$) within the data pipeline, forcing mini-batches to pull an equitable ratio of high-severity damage pairs during every training epoch.
+- Class-Weighted Focal Loss ($\gamma = 2.0$): Weighted the loss tensor inversely proportional to class frequencies while dynamic modulation ($\gamma = 2.0$) suppressed gradients from easily classified background samples (No Damage), 
+-concentrating optimizer step sizes on hard minority boundary cases.This dual-stage approach directly mitigated the extreme skew of the training set, driving the F1-score for severe damage from an unreliable baseline of **0.37 up to 0.63** on the holdout evaluation set. By pairing target consolidation with dynamic oversampling and focal loss tuning, the pipeline transformed the Major damage category from a neglected minority target into a robustly learned, actionable disaster assessment feature.
 ---
 
 
