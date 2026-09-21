@@ -84,10 +84,13 @@ For this weeks work, we reviewed the architecture and propsoed a siamese/ dual r
 
 - Class 2 (Major Damage) suffered from acute precision collapse (0.28), indicating that over 70% of Major Damage predictions were false positives drawn from neighboring classes.Semantic Ambiguity Between Classes 2 and 3: The visual disparity between partial roof/wall failure (Major) and complete structural collapse (Destroyed) proved too subtle for the network to resolve consistently given the limited sample size ($N = 71$ for Class 2).Justification for Data-Centric Refactoring: These baseline results confirmed that isolating Major Damage created an artificial bottleneck, directly informing the decision to consolidate Classes 2 and 3 into a unified severe damage tier for the subsequent iteration.
 
-Week 6: 
+Week 7: 
 
+During this week, we consolidated findings fromn week 6 including :
 
-To be added later on ....
+- Rootcause analysis for the class 2 damage macro f1 collapse (0.28). 
+- Evaluate mitigation options 
+- Benchmark on other similar research, where XBdataset was used and compare with published feedback. 
 
 
 Week 8: Combined Classes to mitigate class imbalance 
@@ -96,6 +99,29 @@ To resolve the severe under-representation of high-severity structural degradati
 - Square-Root Inverse Frequency Sampling: Applied a WeightedRandomSampler using power-scaled sample weights ($w_i = (1 / N_i)^{0.5}$) within the data pipeline, forcing mini-batches to pull an equitable ratio of high-severity damage pairs during every training epoch.
 - Class-Weighted Focal Loss ($\gamma = 2.0$): Weighted the loss tensor inversely proportional to class frequencies while dynamic modulation ($\gamma = 2.0$) suppressed gradients from easily classified background samples (No Damage), 
 -concentrating optimizer step sizes on hard minority boundary cases.This dual-stage approach directly mitigated the extreme skew of the training set, driving the F1-score for severe damage from an unreliable baseline of **0.37 up to 0.63** on the holdout evaluation set. By pairing target consolidation with dynamic oversampling and focal loss tuning, the pipeline transformed the Major damage category from a neglected minority target into a robustly learned, actionable disaster assessment feature.
+
+Week 9: Dry- Run 
+
+- Final testing and dry run of the fine-tuned model , combining two classes , and yielding a higher macro accuracy of 65%. 
+
+- The model weights were initialized via joblib and FastApi's Swagger UI to run inferences on a local dashboard. 
+
+- The model successfully identifies four classes as intended on holdout sets. 
+
+Week 10: 
+
+The last milestone of the project is for Reporting and benchmarking. The core chapters include : 
+
+- State of the Art 
+- Training and validation 
+- Quality assurance , etc. 
+
+
+Future directions of work in relation to the project is also documented in the final report for the Msc. in AI for BI dissertation. 
+
+
+-End-
+
 ---
 
 
